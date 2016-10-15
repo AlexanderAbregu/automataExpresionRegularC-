@@ -1,8 +1,8 @@
 #include <iostream>
+// Se incluye para utilizar cin y cout: http://www.cplusplus.com/reference/iostream/
 #include <cstdlib>
-
-// Para isdigit: http://www.cplusplus.com/reference/cctype/
 #include <cctype>
+// Lo utiliza la funcion isdigit: http://www.cplusplus.com/reference/cctype/
 
 using namespace std;
 
@@ -10,22 +10,19 @@ using namespace std;
  * Se utiliza enum class porque al ser mas "fuertemente tipado", se evitaran posibles errores,
  * Mas informacion: http://stackoverflow.com/questions/18335861/why-is-enum-class-preferred-over-plain-enum
 */
-	enum class Estado { INICIANDO, Q1, Q2, ENTERO, REAL, NOSIRVE };
-	
-	Estado reconocerElNumero ( const string& stringEntrada );
+	enum class EstadoAutomata { INICIO, NUMERO, MAYUSCULA, MINUSCULA, MAL };	
+	EstadoAutomata probarContrasenna ( const string& stringEntrada);
 	
 int main () {
-	cout << "Automata reconoce numeros enteros y reales" << endl;
+	cout << "Automata validador de contraseñas \n\n Ingrese la password: ";
 	
 	string stringEntrada;
 	cin >> stringEntrada;
 	
-	Estado ultimoEstado = reconocerElNumero( stringEntrada );
+	EstadoAutomata ultimoEstado = probarContrasenna( stringEntrada );
 	
-	if ( ultimoEstado == Estado::ENTERO ){
-		cout << "Ingresaste un entero" << endl;
-	} else if ( ultimoEstado == Estado::REAL ){
-		cout << "Ingresaste un nº con coma " << endl;
+	if ( ultimoEstado == EstadoAutomata::MINUSCULA ){
+		cout << "Ingresaste una password valida" << endl;
 	} else {
 		cout << "No funciona e.e " << endl;
 	}
@@ -33,96 +30,73 @@ int main () {
 	cout << endl;
 	system("pause");
 	system("cls");
-	
-	int salir = 0;
-	
-	cout << "Desea salir? \n 0 - SI \n 1 a 9 - NO" << endl;
-	cin >> salir;
-	
-	if( salir ){
-		main();
-	} else {
-		cout << "Adios!" << endl;
-	}
+	main();
 	
 	return 0;
 }
 
-Estado reconocerElNumero( const string& stringEntrada ){
-	unsigned int posicion = 0;
-	
-	Estado actual = Estado::INICIANDO;
-	
-	bool stringRechazado = false;
-	while( !stringRechazado && ( posicion < stringEntrada.length() ) ){
-		char caracterActual = stringEntrada[posicion];
-		
-		switch ( actual ) {
-			case Estado::INICIANDO:
-				if( isdigit( caracterActual ) ){
-					// Si es un digito cambio el estado del automata a ENTERO
-					actual = Estado::ENTERO;
-				} else if ( caracterActual == '+' || caracterActual == '-' ){
-					// Si empieza el numero con + o - 
-					actual = Estado::Q1;
-				} else if ( caracterActual == '.' ) {
-					// Si empieza el numero con un " . " significa que es un decimal
-					actual = Estado::Q2;
+/*
+ *  La expresion regular en la que se basa el automata para funcionar es: /(([0-9]{1,})([A-Z]{1,})([a-z]{1,})){1,}/
+ *  Fue testeada en la siguiente pagina: http://regexr.com/
+ *  Funciono en los siguientes casos: 11AAa, 123ABCabc, 11AAaa, 111AAAaaa, 0Aa, 0Aa0Aa
+ */
+EstadoAutomata probarContrasenna ( const string& stringEngrada ){
+	// Empezare leyendo desde el caracter 0 de la contraseña.
+	 unsigned int posicionCaracter = 0;
+	 
+	 // Establezco el estado del automata como INICIO.
+	 EstadoAutomata estadoActual = EstadoAutomata::INICIO;
+	 
+	 // Reviso caracter por caracter siempre que el automata no tenga el estado de "MAL" o hasta que lea todos los caracteres.
+	 while( ( estadoActual != EstadoAutomata::MAL ) && ( posicionCaracter < stringEngrada.length() ) ){
+		 // Establezco el caracter que estoy por leer.
+		 char caracterActual = stringEngrada[posicionCaracter];
+		 
+		 // Por cada caracter voy a revisar el caracter y el estado del automata.
+		 switch ( estadoActual ){
+			case EstadoAutomata::INICIO:
+				// Si el automata esta en estado "INICIO" y el primer caracter es un numero, entonces cambio el estado a numero. Cualquier otro caracter seria erroneo.
+				if( isdigit ( caracterActual ) ){
+					estadoActual = EstadoAutomata::NUMERO;
 				} else {
-					// Si pone un caracter diferente a un numero o "+" o "-" o "."
-					stringRechazado = true;
+					estadoActual = EstadoAutomata::MAL;
 				}
 				break;
-			case Estado::Q1:
-				if( isdigit( caracterActual ) ){
-					// Si es un digito cambio el estado del automata a ENTERO
-					actual = Estado::ENTERO;
-				} else if ( caracterActual == '.' ) {
-					// Si empieza el numero con un " . " significa que es un decimal
-					actual = Estado::Q2;
+			case EstadoAutomata::NUMERO:
+				// El automata en estado "NUMERO" va a esperar un numero o una letra Mayuscula. Cualquier otro caracter seria erroneo.
+				if ( isupper ( caracterActual ) ){
+					estadoActual = EstadoAutomata::MAYUSCULA;
+				} else if ( isdigit ( caracterActual ) ){
+					estadoActual = EstadoAutomata::NUMERO;
 				} else {
-					// Si pone un caracter diferente a un numero "."
-					stringRechazado = true;
+					estadoActual = EstadoAutomata::MAL;
 				}
 				break;
-			case Estado::Q2:
-				if( isdigit( caracterActual ) ){
-					// Si es un digito cambio el estado del automata a ENTERO
-					actual = Estado::REAL;
+			case EstadoAutomata::MAYUSCULA:
+				// El automata en estado "MAYUSCULA" va a esperar una letra Mayuscula o una letra minuscula. Cualquier otro caracter seria erroneo.
+				if ( islower ( caracterActual ) ){
+					estadoActual = EstadoAutomata::MINUSCULA;
+				} else if ( isupper ( caracterActual ) ){
+					estadoActual = EstadoAutomata::MAYUSCULA;
 				} else {
-					// Si pone un caracter diferente a un numero o un " . "
-					stringRechazado = true;
+					estadoActual = EstadoAutomata::MAL;
 				}
 				break;
-			case Estado::ENTERO:
-				if( isdigit( caracterActual ) ){
-					// Si es un digito cambio el estado del automata a ENTERO
-					actual = Estado::ENTERO;
-				} else if ( caracterActual == '.' ) {
-					// Si empieza el numero con un " . " significa que es un decimal
-					actual = Estado::Q2;
+			case EstadoAutomata::MINUSCULA:
+				// El automata en estado "MINUSCULA" va a esperar una letra Minuscula o un numero. Cualquier otro caracter seria erroneo.
+				if ( isdigit ( caracterActual ) ){
+					estadoActual = EstadoAutomata::NUMERO;
+				} else if ( islower ( caracterActual ) ){
+					estadoActual = EstadoAutomata::MINUSCULA;
 				} else {
-					// Si pone un caracter diferente a un numero o "."
-					stringRechazado = true;
+					estadoActual = EstadoAutomata::MAL;
 				}
 				break;
-			case Estado::REAL:
-				if( isdigit( caracterActual ) ){
-					// Si es un digito cambio el estado del automata a REAL
-					actual = Estado::REAL;
-				} else {
-					// Si pone un caracter diferente a un numero 
-					stringRechazado = true;
-				}
-				break; 
-		}
-		// Evitamos el loop infinito XD
-		posicion++;
-	}
-	
-	if ( stringRechazado ) {
-		return Estado::NOSIRVE;
-	} else {
-		return actual;
-	}
+		 }
+		 // Vamos aumentando de posicion para leer el siguiente caracter de la contraseña
+		posicionCaracter++;
+	 }
+	 
+	 // Retornamos el estado actual del automata
+	 return estadoActual;
 }
